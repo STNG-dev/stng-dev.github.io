@@ -43,15 +43,28 @@ form.addEventListener("submit", async (e) => {
   if (response.ok) {
     window.close(); // Закрываем окно
   } else {
-    Toastify({
-      text: "Не удалось зарегистрировать.\nВозможно вы уже зарегистрированы",
-      duration: 3000,
-      gravity: "top",
-      position: "right",
-      style: {
-        background: "linear-gradient(to right,rgb(176, 0, 21),rgb(201, 145, 125))",
-      },
-    }).showToast();
+    if (response.status === 400) {
+      Toastify({
+        text: "Ссылка не корректна.\nПерейдите по ссылке из Telegram",
+        duration: 3000,
+        gravity: "top",
+        position: "right",
+        style: {
+          background: "linear-gradient(to right,rgb(176, 0, 21),rgb(201, 145, 125))",
+        },
+      }).showToast();
+    } else {
+      Toastify({
+        text: "Не удалось зарегистрировать.\nВозможно вы уже зарегистрированы",
+        duration: 3000,
+        gravity: "top",
+        position: "right",
+        style: {
+          background: "linear-gradient(to right,rgb(176, 0, 21),rgb(201, 145, 125))",
+        },
+      }).showToast();
+    }
+
     throw new Error(`${response.status}: ${response.statusText}`);
   }
 });
