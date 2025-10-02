@@ -1,13 +1,11 @@
 import Toastify from "toastify-js";
+import * as Yup from "yup";
 
 import "./style.css";
 import "toastify-js/src/toastify.css";
 
-// Извлекаем параметры из URL
 const urlParams = new URLSearchParams(window.location.search);
 const tid = urlParams.get("tid");
-
-// Добавляем скрытые поля для Telegram данных
 const form = document.getElementById("registrationForm");
 
 const tidInput = document.createElement("input");
@@ -16,18 +14,81 @@ tidInput.name = "tid";
 tidInput.value = tid;
 form.appendChild(tidInput);
 
-// Обработка отправки формы
-form.addEventListener("submit", async (e) => {
-  let response;
-  e.preventDefault();
+const schema = Yup.object().shape({
+  name: Yup.string()
+    .required("Поле \"name\" обязательно для заполнения")
+    .min(1, "Имя должно быть не короче 1 символа"),
+  password: Yup.string()
+    .required("Поле \"password\" обязательно для заполнения")
+    .min(4, "Пароль должен содержать минимум 4 символа"),
+  email: Yup.string()
+    .required("Поле \"email\" обязательно для заполнения")
+    .matches(
+      /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/,
+      "Введите корректный email"
+    ),
+});
 
-  const formData = new FormData(form);
+form.addEventListener("submit", async (evt) => {
+  let response;
+  evt.preventDefault();
+
+  document.querySelectorAll(".error").forEach(el => el.textContent = "");
+
+  const formData = {
+    name: form.name.value.trim(),
+    password: form.password.value,
+    email: form.email.value.trim(),
+  };
+
+  try {
+    await schema.validate(formData, { abortEarly: false });
+  } catch (validationError) {
+    if (validationError.name === "ValidationError" && validationError.inner) {
+      validationError.inner.forEach(({ path, message }) => {
+        const errorEl = document.getElementById("error-" + path);
+        if (errorEl) errorEl.textContent = message;
+      });
+    } else {
+      throw validationError;
+    }
+    return;
+  }
+
   try {
     response = await fetch("https://smartstng.ru/webhook/telegram-regestration", {
       method: "POST",
-      body: formData,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData),
     });
-  } catch (error) {
+
+    if (response.ok) {
+      window.close();
+    } else {
+      if (response.status === 400) {
+        Toastify({
+          text: "Ссылка не корректна.\nПерейдите по ссылке из Telegram",
+          duration: 3000,
+          gravity: "top",
+          position: "right",
+          style: {
+            background: "linear-gradient(to right,rgb(176, 0, 21),rgb(201, 145, 125))",
+          },
+        }).showToast();
+      } else {
+        Toastify({
+          text: "Не удалось зарегистрировать.\nВозможно вы уже зарегистрированы",
+          duration: 3000,
+          gravity: "top",
+          position: "right",
+          style: {
+            background: "linear-gradient(to right,rgb(176, 0, 21),rgb(201, 145, 125))",
+          },
+        }).showToast();
+      }
+      throw new Error(`${response.status}: ${response.statusText}`);
+    }
+  } catch (fetchError) {
     Toastify({
       text: "Произошла ошибка отправки данных.\nСервер не отвечает",
       duration: 3000,
@@ -37,34 +98,6 @@ form.addEventListener("submit", async (e) => {
         background: "linear-gradient(to right,rgb(176, 0, 21),rgb(201, 145, 125))",
       },
     }).showToast();
-    throw error;
-  }
-
-  if (response.ok) {
-    window.close(); // Закрываем окно
-  } else {
-    if (response.status === 400) {
-      Toastify({
-        text: "Ссылка не корректна.\nПерейдите по ссылке из Telegram",
-        duration: 3000,
-        gravity: "top",
-        position: "right",
-        style: {
-          background: "linear-gradient(to right,rgb(176, 0, 21),rgb(201, 145, 125))",
-        },
-      }).showToast();
-    } else {
-      Toastify({
-        text: "Не удалось зарегистрировать.\nВозможно вы уже зарегистрированы",
-        duration: 3000,
-        gravity: "top",
-        position: "right",
-        style: {
-          background: "linear-gradient(to right,rgb(176, 0, 21),rgb(201, 145, 125))",
-        },
-      }).showToast();
-    }
-
-    throw new Error(`${response.status}: ${response.statusText}`);
+    throw fetchError;
   }
 });
