@@ -6,7 +6,9 @@ import "toastify-js/src/toastify.css";
 
 const urlParams = new URLSearchParams(window.location.search);
 const tid = urlParams.get("tid");
+
 const form = document.getElementById("registrationForm");
+const submitBtn = form.querySelector(".button-reg");
 
 const tidInput = document.createElement("input");
 tidInput.type = "hidden";
@@ -30,9 +32,21 @@ const schema = Yup.object().shape({
     ),
 });
 
+let originalText = "";
+
+const rollbackButton = () => {
+  submitBtn.disabled = false;
+  submitBtn.textContent = originalText;
+};
+
 form.addEventListener("submit", async (evt) => {
   let response;
   evt.preventDefault();
+
+  // Блокируем кнопку и показываем лоадер
+  submitBtn.disabled = true;
+  originalText = submitBtn.textContent;
+  submitBtn.textContent = "Отправка... ⏳";
 
   // Очистка ошибок
   document.querySelectorAll(".error").forEach(el => el.textContent = "");
@@ -57,6 +71,7 @@ form.addEventListener("submit", async (evt) => {
     } else {
       throw validationError;
     }
+    rollbackButton();
     return;
   }
 
@@ -71,6 +86,7 @@ form.addEventListener("submit", async (evt) => {
         background: "linear-gradient(to right,rgb(176, 0, 21),rgb(201, 145, 125))",
       },
     }).showToast();
+    rollbackButton();
     return;
   }
 
@@ -92,6 +108,8 @@ form.addEventListener("submit", async (evt) => {
       },
     }).showToast();
     throw fetchError;
+  } finally {
+    rollbackButton();
   }
 
   if (response.ok) {
