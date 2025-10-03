@@ -14,6 +14,7 @@ tidInput.name = "tid";
 tidInput.value = tid;
 form.appendChild(tidInput);
 
+// Схема валидации
 const schema = Yup.object().shape({
   name: Yup.string()
     .required("Поле \"name\" обязательно для заполнения")
@@ -33,14 +34,18 @@ form.addEventListener("submit", async (evt) => {
   let response;
   evt.preventDefault();
 
+  // Очистка ошибок
   document.querySelectorAll(".error").forEach(el => el.textContent = "");
 
+  // Подготовка данных для отправки
   const formData = {
     name: form.name.value.trim(),
     password: form.password.value,
     email: form.email.value.trim(),
+    tid: form.tid.value,
   };
 
+  // Валидация
   try {
     await schema.validate(formData, { abortEarly: false });
   } catch (validationError) {
@@ -55,39 +60,27 @@ form.addEventListener("submit", async (evt) => {
     return;
   }
 
+  // Проверка подключения к Интернет
+  if (!navigator.onLine) {
+    Toastify({
+      text: "Нет подключения к Интернету.\nОтправка невозможна.",
+      duration: 3000,
+      gravity: "top",
+      position: "right",
+      style: {
+        background: "linear-gradient(to right,rgb(176, 0, 21),rgb(201, 145, 125))",
+      },
+    }).showToast();
+    return;
+  }
+
+  // Отправка данных
   try {
     response = await fetch("https://smartstng.ru/webhook/telegram-regestration", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(formData),
     });
-
-    if (response.ok) {
-      window.close();
-    } else {
-      if (response.status === 400) {
-        Toastify({
-          text: "Ссылка не корректна.\nПерейдите по ссылке из Telegram",
-          duration: 3000,
-          gravity: "top",
-          position: "right",
-          style: {
-            background: "linear-gradient(to right,rgb(176, 0, 21),rgb(201, 145, 125))",
-          },
-        }).showToast();
-      } else {
-        Toastify({
-          text: "Не удалось зарегистрировать.\nВозможно вы уже зарегистрированы",
-          duration: 3000,
-          gravity: "top",
-          position: "right",
-          style: {
-            background: "linear-gradient(to right,rgb(176, 0, 21),rgb(201, 145, 125))",
-          },
-        }).showToast();
-      }
-      throw new Error(`${response.status}: ${response.statusText}`);
-    }
   } catch (fetchError) {
     Toastify({
       text: "Произошла ошибка отправки данных.\nСервер не отвечает",
@@ -99,5 +92,32 @@ form.addEventListener("submit", async (evt) => {
       },
     }).showToast();
     throw fetchError;
+  }
+
+  if (response.ok) {
+    window.close();
+  } else {
+    if (response.status === 400) {
+      Toastify({
+        text: "Ссылка не корректна.\nПерейдите по ссылке из Telegram",
+        duration: 3000,
+        gravity: "top",
+        position: "right",
+        style: {
+          background: "linear-gradient(to right,rgb(176, 0, 21),rgb(201, 145, 125))",
+        },
+      }).showToast();
+    } else {
+      Toastify({
+        text: "Не удалось зарегистрировать.\nВозможно вы уже зарегистрированы",
+        duration: 3000,
+        gravity: "top",
+        position: "right",
+        style: {
+          background: "linear-gradient(to right,rgb(176, 0, 21),rgb(201, 145, 125))",
+        },
+      }).showToast();
+    }
+    throw new Error(`${response.status}: ${response.statusText}`);
   }
 });
