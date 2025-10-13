@@ -27,8 +27,8 @@ const schema = Yup.object().shape({
   email: Yup.string()
     .required("Поле \"email\" обязательно для заполнения")
     .matches(
-      /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/,
-      "Введите корректный email"
+      /^[a-zA-Z0-9._-]+@(stng\.ru|stg\.ru|gsprom\.ru|gsp-center\.ru)$/,
+      "Введите корректный email из домена @stng.ru, @stg.ru, @gsprom.ru, @gsp-center.ru"
     ),
 });
 
